@@ -28,10 +28,31 @@ class Userserilizer(serializers.ModelSerializer):
 class Postseriliazer(serializers.ModelSerializer):
     class Meta:
         model=Post
-        fields = ['id', 'author', 'title', 'content', 'image', 'created_at', 'updated_at']
-        read_only_fields = ['id', 'created_at', 'updated_at', 'author']   
+        fields = ['id', 'author', 'caption', 'image', 'created_at']
+        read_only_fields = ['id', 'created_at', 'author']   
 
     def create(self, validated_data):
         user=self.context['request'].user
         post=Post.objects.create(author=user, **validated_data)
         return post
+
+
+class profiledisplaySerializer(serializers.ModelSerializer):
+    profile_picture = serializers.ImageField(use_url=True) 
+
+    class Meta:
+        model = CustomUser
+        fields = ['username', 'email', 'profile_picture']
+        
+class postdisplaySerializer(serializers.ModelSerializer):
+    image_url=serializers.SerializerMethodField()
+
+    class Meta:
+        model=Post
+        fields =['id','caption','image_url','created_at']
+
+    def get_image_url(self, obj):
+        request = self.context.get('request')
+        if obj.image and request:
+            return request.build_absolute_uri(obj.image.url)
+        return None   

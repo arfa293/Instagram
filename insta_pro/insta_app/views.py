@@ -9,8 +9,18 @@ from django.contrib.auth import authenticate
 from rest_framework.views import APIView 
 from rest_framework.authtoken.models import Token
 from .models import CustomUser
+from .serilizer import postdisplaySerializer
+from rest_framework.permissions import AllowAny
+from django.conf import settings
+from .models import Post,CustomUser
+
+
+
+
 @api_view(['POST'])
+@permission_classes([AllowAny])
 def register_user(request):
+    
     if request.method == 'POST':
         email=request.data.get('email')
         if CustomUser.objects.filter(email=email).exists():
@@ -32,6 +42,7 @@ def create_post(request):
     return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 class Customlogin_view(APIView):
+    permission_classes=[AllowAny]
     def post(self,request,*args, **kwargs):
         email=request.data.get('email')
         username=request.data.get('username')
@@ -51,3 +62,21 @@ class Customlogin_view(APIView):
             }, status=status.HTTP_200_OK)
 
         return Response({'detail': 'Invalid credentials'}, status=status.HTTP_400_BAD_REQUEST)
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def profile_view(request):
+    user = request.user
+    profile_photo_url = request.build_absolute_uri(user.profile_picture.url) if user.profile_picture else None
+    return Response({
+        "username":user.username,
+        "profile_picture": profile_photo_url,
+        "bio":user.bio
+    })
+   
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def my_post(request):
+    posts=Post.objects.filter(author=request.user)
+    serilizer=postdisplaySerializer(posts,many=True, context={'request':request})
+    return Response(serilizer.data)

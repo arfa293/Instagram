@@ -21,7 +21,7 @@ class CustomUserManager(BaseUserManager):
 class CustomUser(AbstractBaseUser):
     username=models.CharField(max_length=100 ,unique=True)
     email=models.EmailField(unique=True)
-    profile_picture=models.ImageField(upload_to='profile_pics/',null=True,blank=True)
+    profile_picture=models.ImageField(upload_to='',null=True,blank=True)
     bio=models.TextField(max_length=100 ,null=True,blank=True)
     created_at=models.DateTimeField(auto_now_add=True)
     is_staff = models.BooleanField(default=False) 
@@ -42,3 +42,7 @@ class Post(models.Model):
 
     def __str__(self):
         return self.caption
+    def get_image_url(self):
+        if self.image:
+            return self.image.url
+        return None
