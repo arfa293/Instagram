@@ -13,6 +13,8 @@ from .serilizer import postdisplaySerializer
 from rest_framework.permissions import AllowAny
 from django.conf import settings
 from .models import Post,CustomUser
+from django.contrib.auth import get_user_model
+
 
 
 
@@ -80,3 +82,38 @@ def my_post(request):
     posts=Post.objects.filter(author=request.user)
     serilizer=postdisplaySerializer(posts,many=True, context={'request':request})
     return Response(serilizer.data)
+
+@api_view(['PUT'])
+@permission_classes([IsAuthenticated])
+def update_bio(request):
+    user=request.user
+    new_bio=request.data.get('bio')
+
+    if new_bio is None:
+        return Response({"error":"bio is required"},status=status.HTTP_400_BAD_REQUEST)
+    
+    user.bio=new_bio
+    user.save()
+
+    return Response({'message':'bio created successfully','bio':user.bio} ,status=status.HTTP_200_OK)
+
+User = get_user_model()
+
+@api_view(['PUT'])
+@permission_classes([IsAuthenticated])
+def update_username(request):
+    user = request.user
+    new_username = request.data.get('username')
+
+    if not new_username:
+        return Response({'error': 'Username is required'}, status=status.HTTP_400_BAD_REQUEST)
+
+
+    if User.objects.filter(username=new_username).exclude(pk=user.pk).exists():
+        return Response({'error': 'Username already taken'}, status=status.HTTP_400_BAD_REQUEST)
+
+    user.username = new_username
+    user.save()
+
+    return Response({'username': user.username}, status=status.HTTP_200_OK)
+    
