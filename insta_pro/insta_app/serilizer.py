@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import CustomUser,Post
+from .models import CustomUser,Post,Follow,like,Comment
 
 class Userserilizer(serializers.ModelSerializer):
     confirm_password=serializers.CharField(write_only=True)
@@ -42,7 +42,7 @@ class profiledisplaySerializer(serializers.ModelSerializer):
 
     class Meta:
         model = CustomUser
-        fields = ['username', 'email', 'profile_picture']
+        fields = ['id','username', 'email', 'profile_picture','bio']
         
 class postdisplaySerializer(serializers.ModelSerializer):
     image_url=serializers.SerializerMethodField()
@@ -56,3 +56,55 @@ class postdisplaySerializer(serializers.ModelSerializer):
         if obj.image and request:
             return request.build_absolute_uri(obj.image.url)
         return None   
+class followserilizer(serializers.ModelSerializer):
+    class Meta:
+        model=Follow
+        fields = ['id', 'follower', 'following', 'created_at']   
+
+class PostViewSerializer(serializers.ModelSerializer):
+    author_name=serializers.CharField(source='author.username', read_only=True)
+    author_profile_picture = serializers.ImageField(source='author.profile_picture', read_only=True)
+
+    class Meta:
+        model=Post
+        fields=[ 'id',
+            'author_name',
+            'author_profile_picture',
+            'caption',
+            'image',
+            'created_at'
+        ]
+        read_only_fields = ['id', 'created_at', 'author'] 
+
+
+class LikeSerializer(serializers.ModelSerializer):
+    class Meta:
+        model=like
+        fields=['id', 'post', 'user', 'created_at']     
+
+class CommentRetrieveSerializer(serializers.ModelSerializer):
+    user_username = serializers.CharField(source='user.username', read_only=True)
+    user_profile_picture = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Comment
+        fields = ['id', 'post', 'user', 'user_username', 'user_profile_picture', 'text', 'created_at']
+
+    def get_user_profile_picture(self, obj):
+        request = self.context.get('request')
+        # Directly access the profile_picture on CustomUser
+        if obj.user.profile_picture and request:
+            return request.build_absolute_uri(obj.user.profile_picture.url)
+        return None
+
+class CommentCreateSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Comment
+        fields = ['post', 'text']
+
+    def validate_post(self, value):
+        # Ensure that the value is an actual Post object, not an ID
+        if not isinstance(value, Post):
+            if not Post.objects.filter(id=value).exists():
+                raise serializers.ValidationError("Post does not exist")
+        return value
